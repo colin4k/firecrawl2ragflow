@@ -188,7 +188,15 @@ class Crawl2RAG:
                 logger.info(f'开始爬取页面 {page_num}: {url}')
 
                 # 直接调用Firecrawl API爬取页面
-                api_endpoint = f"{self.firecrawl_api_url}"
+                # 确保API URL格式正确
+                if self.firecrawl_api_url.endswith('/'):
+                    api_endpoint = f"{self.firecrawl_api_url}scrape"
+                else:
+                    api_endpoint = f"{self.firecrawl_api_url}/scrape"
+
+                logger.info(f'Firecrawl API URL: {self.firecrawl_api_url}')
+                logger.info(f'构建的API端点: {api_endpoint}')
+
                 headers = {
                     "Authorization": f"Bearer {self.firecrawl_api_key}",
                     "Content-Type": "application/json"
@@ -197,31 +205,108 @@ class Crawl2RAG:
                 # 构建请求数据
                 payload = {
                     "url": url,
-                    "formats": ['markdown']
+                    "formats": ['markdown'],
+                    "scrapeOptions": {
+                        "waitUntil": "networkidle2",
+                        "timeout": 30000
+                    }
                 }
+
+                logger.info(f'请求Firecrawl API: {api_endpoint}')
+                logger.info(f'请求头: {headers}')
+                logger.info(f'请求数据: {json.dumps(payload, ensure_ascii=False)}')
 
                 # 发送请求
                 response = requests.post(api_endpoint, json=payload, headers=headers)
+
+                # 记录响应状态和头信息
+                logger.info(f'响应状态码: {response.status_code}')
+                logger.info(f'响应头: {dict(response.headers)}')
+
+                # 确保请求成功
                 response.raise_for_status()
 
+                # 解析响应
                 result = response.json()
+
+                # 记录响应内容摘要
+                result_keys = list(result.keys())
+                logger.info(f'响应包含的键: {result_keys}')
+
+                # 记录响应大小
+                response_size = len(response.content)
+                logger.info(f'响应大小: {response_size} 字节')
+
                 logger.info(f'通过API调用成功爬取页面 {page_num}')
 
+                # 尝试从不同的响应格式中提取内容
+                markdown_content = None
+
+                # 检查响应结构，处理不同的响应格式
                 if 'markdown' in result:
+                    # 直接获取markdown内容
+                    markdown_content = result['markdown']
+                    logger.info(f'从响应的markdown字段获取内容')
+                elif 'content' in result and isinstance(result['content'], dict) and 'markdown' in result['content']:
+                    # 从content.markdown获取内容
+                    markdown_content = result['content']['markdown']
+                    logger.info(f'从响应的content.markdown字段获取内容')
+                elif 'data' in result and isinstance(result['data'], dict) and 'markdown' in result['data']:
+                    # 从data.markdown获取内容
+                    markdown_content = result['data']['markdown']
+                    logger.info(f'从响应的data.markdown字段获取内容')
+
+
+                # 处理提取的内容
+                if markdown_content:
+                    # 记录内容预览
+                    content_preview = markdown_content[:100] + '...' if len(markdown_content) > 100 else markdown_content
+                    logger.info(f'获取到内容预览: {content_preview}')
+
                     # 保存为Markdown文件
-                    file_path = self._save_to_markdown(result['markdown'], url, page_num)
+                    file_path = self._save_to_markdown(markdown_content, url, page_num)
 
                     # 添加页码信息到结果
                     result['page_num'] = page_num
                     result['file_path'] = file_path
+                    # 确保结果中有markdown字段，以便后续处理
+                    result['markdown'] = markdown_content
                     results.append(result)
 
                     logger.info(f'页面 {page_num} 爬取成功')
                 else:
-                    logger.warning(f'页面 {page_num} 爬取成功但未返回Markdown内容')
+                    logger.warning(f'页面 {page_num} 爬取成功但未能提取有效内容')
+                    # 记录响应结构，以便调试
+                    logger.warning(f'响应结构: {json.dumps(list(result.keys()), ensure_ascii=False)}')
+                    # 记录部分响应内容
+                    truncated_result = {k: str(v)[:100] + '...' if isinstance(v, str) and len(v) > 100 else v
+                                       for k, v in result.items()}
+                    logger.warning(f'响应内容摘要: {json.dumps(truncated_result, ensure_ascii=False, indent=2)}')
 
+            except requests.RequestException as req_err:
+                # 处理请求相关错误
+                logger.error(f'爬取页面 {page_num} 时发生请求错误: {str(req_err)}')
+                if hasattr(req_err, 'response') and req_err.response is not None:
+                    # 记录响应状态码和内容
+                    logger.error(f'错误响应状态码: {req_err.response.status_code}')
+                    try:
+                        error_content = req_err.response.json()
+                        logger.error(f'错误响应内容: {json.dumps(error_content, ensure_ascii=False)}')
+                    except:
+                        logger.error(f'错误响应内容: {req_err.response.text[:500]}...')
+
+                # 继续爬取下一个页面
+                continue
+            except json.JSONDecodeError as json_err:
+                # 处理JSON解析错误
+                logger.error(f'爬取页面 {page_num} 时JSON解析错误: {str(json_err)}')
+                logger.error(f'响应内容: {response.text[:500]}...')
+                continue
             except Exception as e:
+                # 处理其他错误
                 logger.error(f'爬取页面 {page_num} 时发生错误: {str(e)}')
+                import traceback
+                logger.error(f'错误详情: {traceback.format_exc()}')
                 # 继续爬取下一个页面
                 continue
 
@@ -379,10 +464,19 @@ def main():
                         help='RAGFlow知识库名称')
     parser.add_argument('--config', type=str, default='config.yml',
                         help='配置文件路径')
+    parser.add_argument('--debug', action='store_true',
+                        help='启用调试模式，输出更详细的日志')
 
     args = parser.parse_args()
 
     try:
+        # 配置日志级别
+        if args.debug:
+            logger.remove()  # 移除默认处理器
+            logger.add(sys.stderr, level="DEBUG")
+            logger.add("crawl2rag_debug.log", level="DEBUG", rotation="10 MB")
+            logger.debug("调试模式已启用")
+
         # 初始化Crawl2RAG
         crawler = Crawl2RAG(config_path=args.config)
 
