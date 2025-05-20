@@ -57,6 +57,8 @@ python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 
 - `--knowledge_base_name`: RAGFlow知识库名称
 - `--config`: 配置文件路径（默认为 config.yml）
 - `--skiprag`: 仅爬取网页，不上传至RAGFlow
+- `--wait-min`: 爬取页面之间的最小等待时间（秒），默认为3秒
+- `--wait-max`: 爬取页面之间的最大等待时间（秒），默认为10秒
 - `--debug`: 启用调试模式，输出更详细的日志
 
 ## 示例
@@ -77,6 +79,12 @@ python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 
 
 ```bash
 python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 1 --end_page 10 --doc_id blockchain-basics --knowledge_base_name crypto --debug
+```
+
+自定义爬取间隔时间（5-15秒）：
+
+```bash
+python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 1 --end_page 10 --doc_id blockchain-basics --knowledge_base_name crypto --wait-min 5 --wait-max 15
 ```
 
 ## 许可证

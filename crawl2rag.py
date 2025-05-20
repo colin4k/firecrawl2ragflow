@@ -169,7 +169,7 @@ class Crawl2RAG:
 
         return chunks
 
-    def crawl_page_range(self, base_url: str, start_page: int, end_page: int, wait_min: float = 3.0, wait_max: float = 10.0) -> List[Dict[str, Any]]:
+    def crawl_page_range(self, base_url: str, start_page: int, end_page: int, wait_min: float = 2.0, wait_max: float = 4.0) -> List[Dict[str, Any]]:
         """爬取指定范围内的页面
 
         Args:
@@ -411,7 +411,7 @@ class Crawl2RAG:
         """
         try:
             # 爬取页面
-            crawl_results = self.crawl_page_range(base_url, start_page, end_page)
+            crawl_results = self.crawl_page_range(base_url, start_page, end_page, wait_min, wait_max)
 
             if not crawl_results:
                 logger.warning('未爬取到任何页面，无法上传到RAGFlow')
@@ -521,7 +521,9 @@ def main():
             end_page=args.end_page,
             doc_id=args.doc_id,
             knowledge_base_name=args.knowledge_base_name,
-            skip_rag=args.skiprag
+            skip_rag=args.skiprag,
+            wait_min=args.wait_min,
+            wait_max=args.wait_max
         )
 
         # 输出结果
