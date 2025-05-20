@@ -56,6 +56,8 @@ python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 
 - `--doc_id`: RAGFlow文档ID
 - `--knowledge_base_name`: RAGFlow知识库名称
 - `--config`: 配置文件路径（默认为 config.yml）
+- `--skiprag`: 仅爬取网页，不上传至RAGFlow
+- `--debug`: 启用调试模式，输出更详细的日志
 
 ## 示例
 

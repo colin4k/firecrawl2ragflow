@@ -223,32 +223,15 @@ class Crawl2RAG:
                 # 解析响应
                 result = response.json()
 
-                # 记录响应内容摘要
-                result_keys = list(result.keys())
-                logger.info(f'响应包含的键: {result_keys}')
-
-                # 记录响应大小
-                response_size = len(response.content)
-                logger.info(f'响应大小: {response_size} 字节')
-
                 logger.info(f'通过API调用成功爬取页面 {page_num}')
 
                 # 尝试从不同的响应格式中提取内容
                 markdown_content = None
 
-                # 检查响应结构，处理不同的响应格式
-                if 'markdown' in result:
-                    # 直接获取markdown内容
-                    markdown_content = result['markdown']
-                    logger.info(f'从响应的markdown字段获取内容')
-                elif 'content' in result and isinstance(result['content'], dict) and 'markdown' in result['content']:
-                    # 从content.markdown获取内容
-                    markdown_content = result['content']['markdown']
-                    logger.info(f'从响应的content.markdown字段获取内容')
-                elif 'data' in result and isinstance(result['data'], dict) and 'markdown' in result['data']:
-                    # 从data.markdown获取内容
-                    markdown_content = result['data']['markdown']
-                    logger.info(f'从响应的data.markdown字段获取内容')
+
+                # 从data.markdown获取内容
+                markdown_content = result['data']['markdown']
+                logger.info(f'从响应的data.markdown字段获取内容')
 
 
                 # 处理提取的内容
@@ -400,7 +383,7 @@ class Crawl2RAG:
             logger.error(f'上传到RAGFlow时发生错误: {str(e)}')
             raise
 
-    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str) -> Dict[str, Any]:
+    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str, skip_rag: bool = False) -> Dict[str, Any]:
         """处理完整流程：爬取页面并上传到RAGFlow
 
         Args:
@@ -409,6 +392,7 @@ class Crawl2RAG:
             end_page: 结束页码
             doc_id: RAGFlow文档ID
             knowledge_base_name: RAGFlow知识库名称
+            skip_rag: 是否跳过上传到RAGFlow
 
         Returns:
             Dict[str, Any]: 处理结果
@@ -421,21 +405,59 @@ class Crawl2RAG:
                 logger.warning('未爬取到任何页面，无法上传到RAGFlow')
                 return {'status': 'error', 'message': '未爬取到任何页面'}
 
-            # 合并所有Markdown内容
-            all_markdown = ""
-            for result in crawl_results:
-                if 'markdown' in result:
-                    all_markdown += f"\n\n## 页面 {result['page_num']}\n\n"
-                    all_markdown += result['markdown']
+            # 如果不跳过上传到RAGFlow
+            upload_results = []
+            uploaded_pages = 0
 
-            # 上传到RAGFlow
-            upload_result = self.upload_to_ragflow(all_markdown, doc_id, knowledge_base_name)
+            if not skip_rag:
+                # 逐个上传每个页面的内容到RAGFlow
+                for result in crawl_results:
+                    if 'markdown' in result:
+                        page_num = result['page_num']
+                        page_content = result['markdown']
+
+                        # 为每个页面创建唯一的文档ID
+                        page_doc_id = f"{doc_id}-page-{page_num}"
+
+                        logger.info(f"正在上传页面 {page_num} 到RAGFlow，文档ID: {page_doc_id}")
+
+                        # 上传单个页面内容
+                        try:
+                            page_result = self.upload_to_ragflow(page_content, page_doc_id, knowledge_base_name)
+                            upload_results.append({
+                                'page_num': page_num,
+                                'doc_id': page_doc_id,
+                                'result': page_result
+                            })
+                            uploaded_pages += 1
+                            logger.info(f"页面 {page_num} 上传成功")
+                        except Exception as e:
+                            logger.error(f"页面 {page_num} 上传失败: {str(e)}")
+                            upload_results.append({
+                                'page_num': page_num,
+                                'doc_id': page_doc_id,
+                                'error': str(e)
+                            })
+
+                # 汇总上传结果
+                upload_result = {
+                    'uploaded_pages': uploaded_pages,
+                    'total_pages': len(crawl_results),
+                    'details': upload_results
+                }
+            else:
+                logger.info("跳过上传到RAGFlow")
+                upload_result = {
+                    'skipped': True,
+                    'message': '根据参数设置，跳过上传到RAGFlow'
+                }
 
             return {
                 'status': 'success',
                 'crawled_pages': len(crawl_results),
                 'total_pages': end_page - start_page + 1,
-                'ragflow_result': upload_result
+                'uploaded_pages': uploaded_pages,
+                'ragflow_results': upload_result
             }
 
         except Exception as e:
@@ -460,6 +482,8 @@ def main():
                         help='配置文件路径')
     parser.add_argument('--debug', action='store_true',
                         help='启用调试模式，输出更详细的日志')
+    parser.add_argument('--skiprag', action='store_true',
+                        help='仅爬取网页，不上传至RAGFlow')
 
     args = parser.parse_args()
 
@@ -480,7 +504,8 @@ def main():
             start_page=args.start_page,
             end_page=args.end_page,
             doc_id=args.doc_id,
-            knowledge_base_name=args.knowledge_base_name
+            knowledge_base_name=args.knowledge_base_name,
+            skip_rag=args.skiprag
         )
 
         # 输出结果
