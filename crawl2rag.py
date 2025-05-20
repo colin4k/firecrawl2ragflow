@@ -5,6 +5,8 @@ import argparse
 import yaml
 import requests
 import json
+import random
+import time
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse, urljoin
 import re
@@ -167,13 +169,15 @@ class Crawl2RAG:
 
         return chunks
 
-    def crawl_page_range(self, base_url: str, start_page: int, end_page: int) -> List[Dict[str, Any]]:
+    def crawl_page_range(self, base_url: str, start_page: int, end_page: int, wait_min: float = 3.0, wait_max: float = 10.0) -> List[Dict[str, Any]]:
         """爬取指定范围内的页面
 
         Args:
             base_url: 基础URL
             start_page: 起始页码
             end_page: 结束页码
+            wait_min: 爬取页面之间的最小等待时间（秒）
+            wait_max: 爬取页面之间的最大等待时间（秒）
 
         Returns:
             List[Dict[str, Any]]: 爬取结果列表
@@ -181,6 +185,12 @@ class Crawl2RAG:
         results = []
 
         for page_num in range(start_page, end_page + 1):
+            # 如果不是第一个页面，随机等待指定范围内的时间
+            if page_num > start_page:
+                wait_time = random.uniform(wait_min, wait_max)
+                logger.info(f'随机等待 {wait_time:.2f} 秒后继续爬取下一个页面')
+                time.sleep(wait_time)
+
             # 构建完整URL
             url = f"{base_url}{page_num}"
 
@@ -383,7 +393,7 @@ class Crawl2RAG:
             logger.error(f'上传到RAGFlow时发生错误: {str(e)}')
             raise
 
-    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str, skip_rag: bool = False) -> Dict[str, Any]:
+    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str, skip_rag: bool = False, wait_min: float = 3.0, wait_max: float = 10.0) -> Dict[str, Any]:
         """处理完整流程：爬取页面并上传到RAGFlow
 
         Args:
@@ -393,6 +403,8 @@ class Crawl2RAG:
             doc_id: RAGFlow文档ID
             knowledge_base_name: RAGFlow知识库名称
             skip_rag: 是否跳过上传到RAGFlow
+            wait_min: 爬取页面之间的最小等待时间（秒）
+            wait_max: 爬取页面之间的最大等待时间（秒）
 
         Returns:
             Dict[str, Any]: 处理结果
@@ -484,6 +496,10 @@ def main():
                         help='启用调试模式，输出更详细的日志')
     parser.add_argument('--skiprag', action='store_true',
                         help='仅爬取网页，不上传至RAGFlow')
+    parser.add_argument('--wait-min', type=float, default=3.0,
+                        help='爬取页面之间的最小等待时间（秒），默认为3秒')
+    parser.add_argument('--wait-max', type=float, default=10.0,
+                        help='爬取页面之间的最大等待时间（秒），默认为10秒')
 
     args = parser.parse_args()
 

@@ -67,6 +67,18 @@ python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 
 python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 1 --end_page 10 --doc_id blockchain-basics --knowledge_base_name crypto
 ```
 
+仅抓取网页而不上传到知识库：
+
+```bash
+python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 1 --end_page 10 --doc_id blockchain-basics --knowledge_base_name crypto --skiprag
+```
+
+启用调试模式：
+
+```bash
+python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 1 --end_page 10 --doc_id blockchain-basics --knowledge_base_name crypto --debug
+```
+
 ## 许可证
 
 MIT
