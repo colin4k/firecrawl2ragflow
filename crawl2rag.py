@@ -203,11 +203,7 @@ class Crawl2RAG:
                 # 构建请求数据
                 payload = {
                     "url": url,
-                    "formats": ['markdown'],
-                    "scrapeOptions": {
-                        "waitUntil": "networkidle2",
-                        "timeout": 30000
-                    }
+                    "formats": ['markdown']
                 }
 
                 logger.info(f'请求Firecrawl API: {api_endpoint}')
