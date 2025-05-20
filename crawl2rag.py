@@ -189,10 +189,8 @@ class Crawl2RAG:
 
                 # 直接调用Firecrawl API爬取页面
                 # 确保API URL格式正确
-                if self.firecrawl_api_url.endswith('/'):
-                    api_endpoint = f"{self.firecrawl_api_url}scrape"
-                else:
-                    api_endpoint = f"{self.firecrawl_api_url}/scrape"
+                api_endpoint = self.firecrawl_api_url
+
 
                 logger.info(f'Firecrawl API URL: {self.firecrawl_api_url}')
                 logger.info(f'构建的API端点: {api_endpoint}')
