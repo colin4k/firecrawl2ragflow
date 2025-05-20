@@ -57,8 +57,8 @@ python crawl2rag.py --base_url https://learnblockchain.cn/article/ --start_page 
 - `--knowledge_base_name`: RAGFlow知识库名称
 - `--config`: 配置文件路径（默认为 config.yml）
 - `--skiprag`: 仅爬取网页，不上传至RAGFlow
-- `--wait-min`: 爬取页面之间的最小等待时间（秒），默认为3秒
-- `--wait-max`: 爬取页面之间的最大等待时间（秒），默认为10秒
+- `--wait-min`: 爬取页面之间的最小等待时间（秒），默认为2秒
+- `--wait-max`: 爬取页面之间的最大等待时间（秒），默认为4秒
 - `--debug`: 启用调试模式，输出更详细的日志
 
 ## 示例

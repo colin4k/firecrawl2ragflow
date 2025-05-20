@@ -496,9 +496,9 @@ def main():
                         help='启用调试模式，输出更详细的日志')
     parser.add_argument('--skiprag', action='store_true',
                         help='仅爬取网页，不上传至RAGFlow')
-    parser.add_argument('--wait-min', type=float, default=3.0,
+    parser.add_argument('--wait-min', type=float, default=2.0,
                         help='爬取页面之间的最小等待时间（秒），默认为3秒')
-    parser.add_argument('--wait-max', type=float, default=10.0,
+    parser.add_argument('--wait-max', type=float, default=4.0,
                         help='爬取页面之间的最大等待时间（秒），默认为10秒')
 
     args = parser.parse_args()
