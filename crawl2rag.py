@@ -393,7 +393,7 @@ class Crawl2RAG:
             logger.error(f'上传到RAGFlow时发生错误: {str(e)}')
             raise
 
-    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str, skip_rag: bool = False, wait_min: float = 3.0, wait_max: float = 10.0) -> Dict[str, Any]:
+    def process(self, base_url: str, start_page: int, end_page: int, doc_id: str, knowledge_base_name: str, skip_rag: bool = False, wait_min: float = 2.0, wait_max: float = 4.0) -> Dict[str, Any]:
         """处理完整流程：爬取页面并上传到RAGFlow
 
         Args:
