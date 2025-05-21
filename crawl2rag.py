@@ -139,9 +139,18 @@ class Crawl2RAG:
             # 使用 BeautifulSoup 处理 HTML 内容
             soup = BeautifulSoup(content, 'html.parser')
             
-            # 移除所有 .author 元素
+            # 移除所有 .author .feature_container .widget-relation .post-opt 元素
             for author_element in soup.select('.author'):
                 author_element.decompose()
+            for feature_container in soup.select('.feature_container'):
+                feature_container.decompose()
+            for widget_relation in soup.select('.widget-relation'):
+                widget_relation.decompose()
+            for post_opt in soup.select('.post-opt'):
+                post_opt.decompose()
+
+            .widget-relation
+            .post-opt
 
             # 检查并添加标题信息
             if not soup.find('head'):
