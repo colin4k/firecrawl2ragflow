@@ -106,13 +106,14 @@ class Crawl2RAG:
             logger.error(f'保存Markdown文件时发生错误: {str(e)}')
             raise
 
-    def _save_to_html(self, content: str, url: str, page_num: Optional[int] = None) -> str:
+    def _save_to_html(self, content: str, url: str, page_num: Optional[int] = None, title: str = '爬取页面') -> str:
         """将爬取内容保存为html文件
 
         Args:
             content: html格式的内容
             url: 原始URL
             page_num: 页面编号（如果有）
+            title: 页面标题
 
         Returns:
             str: 保存的文件路径
@@ -133,6 +134,15 @@ class Crawl2RAG:
                 # 否则尝试从URL中提取ID
                 article_id = next((part for part in reversed(path_parts) if part.isdigit()), 'article')
                 filename = f"article-{article_id}.html"
+
+            # 检查并添加标题信息
+            if '<head>' not in content.lower():
+                # 如果没有 head 标签，在 body 标签前添加
+                if '<body>' in content.lower():
+                    content = content.replace('<body>', f'<head><title>{title}</title></head><body>', 1)
+                else:
+                    # 如果没有 body 标签，在开头添加
+                    content = f'<head><title>{title}</title></head>' + content
 
             # 保存文件
             file_path = os.path.join(output_dir, filename)
@@ -232,8 +242,11 @@ class Crawl2RAG:
                     html_content_preview = html_content[:100] + '...' if len(html_content) > 100 else html_content
                     logger.info(f'获取到HTML内容预览: {html_content_preview}')
                     
+                    # 获取标题
+                    title = result.get('metadata', {}).get('title', '爬取页面')
+                    
                     # 保存为HTML文件
-                    file_path = self._save_to_html(html_content, url, page_num)
+                    file_path = self._save_to_html(html_content, url, page_num, title)
                     
                     result['page_num'] = page_num
                     result['file_path'] = file_path
