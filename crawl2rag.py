@@ -149,9 +149,6 @@ class Crawl2RAG:
             for post_opt in soup.select('.post-opt'):
                 post_opt.decompose()
 
-            .widget-relation
-            .post-opt
-
             # 检查并添加标题信息
             if not soup.find('head'):
                 # 如果没有 head 标签，创建新的 head 标签
