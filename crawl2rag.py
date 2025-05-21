@@ -243,7 +243,7 @@ class Crawl2RAG:
                     logger.info(f'获取到HTML内容预览: {html_content_preview}')
                     
                     # 获取标题
-                    title = result['metadata']['title']
+                    title = result['data']['metadata']['title']
                     
                     # 保存为HTML文件
                     file_path = self._save_to_html(html_content, url, page_num, title)
