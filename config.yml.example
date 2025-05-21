@@ -3,11 +3,6 @@ firecrawl:
   api_url: "http://amd:7002/v1/scrape"  # Default local Firecrawl API URL
   api_key: "sk-123"  # Your Firecrawl API key
 
-# RAGFlow API Configuration
-ragflow:
-  api_url: "http://amd:8081"  # Default local RAGFlow API URL
-  api_key: "ragflow-xxxx"  # Your RAGFlow API key
-
 # Output Configuration
 output:
   dir: "output"  # Directory to save crawled content
