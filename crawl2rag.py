@@ -216,10 +216,12 @@ class Crawl2RAG:
                 html_content = None
 
                 # 从data.markdown获取内容
-                markdown_content = result['data']['markdown']
-                logger.info(f'从响应的data.markdown字段获取内容')
-                html_content = result['data']['html']
-                logger.info(f'从响应的data.html字段获取内容')
+                if result['data']['markdown']:
+                    markdown_content = result['data']['markdown']
+                    logger.info(f'从响应的data.markdown字段获取内容')
+                if result['data']['html']:
+                    html_content = result['data']['html']
+                    logger.info(f'从响应的data.html字段获取内容')
 
 
                 # 处理提取的内容
