@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse, urljoin
 import re
 from loguru import logger
+from bs4 import BeautifulSoup
 # No longer using FirecrawlApp SDK
 from ragflow_sdk import RAGFlow
 
@@ -135,19 +136,32 @@ class Crawl2RAG:
                 article_id = next((part for part in reversed(path_parts) if part.isdigit()), 'article')
                 filename = f"article-{article_id}.html"
 
+            # 使用 BeautifulSoup 处理 HTML 内容
+            soup = BeautifulSoup(content, 'html.parser')
+            
+            # 移除所有 .author 元素
+            for author_element in soup.select('.author'):
+                author_element.decompose()
+
             # 检查并添加标题信息
-            if '<head>' not in content.lower():
-                # 如果没有 head 标签，在 body 标签前添加
-                if '<body>' in content.lower():
-                    content = content.replace('<body>', f'<head><title>{title}</title></head><body>', 1)
+            if not soup.find('head'):
+                # 如果没有 head 标签，创建新的 head 标签
+                head_tag = soup.new_tag('head')
+                title_tag = soup.new_tag('title')
+                title_tag.string = title
+                head_tag.append(title_tag)
+                
+                if soup.find('body'):
+                    # 如果有 body 标签，在 body 前插入 head
+                    soup.body.insert_before(head_tag)
                 else:
                     # 如果没有 body 标签，在开头添加
-                    content = f'<head><title>{title}</title></head>' + content
+                    soup.insert(0, head_tag)
 
             # 保存文件
             file_path = os.path.join(output_dir, filename)
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+                f.write(str(soup))
             logger.info(f'内容已保存到文件: {file_path}')
             return file_path
 
