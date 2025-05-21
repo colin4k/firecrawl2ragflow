@@ -145,7 +145,7 @@ class Crawl2RAG:
             logger.error(f'保存html文件时发生错误: {str(e)}')
             raise
 
-    def crawl_page_range(self, base_url: str, start_page: int, end_page: int, wait_min: float = 2.0, wait_max: float = 4.0) -> List[Dict[str, Any]]:
+    def crawl_page_range(self, base_url: str, start_page: int, end_page: int, wait_min: float = 2.0, wait_max: float = 4.0, output_type: str = 'markdown') -> List[Dict[str, Any]]:
         """爬取指定范围内的页面
 
         Args:
@@ -154,6 +154,7 @@ class Crawl2RAG:
             end_page: 结束页码
             wait_min: 爬取页面之间的最小等待时间（秒）
             wait_max: 爬取页面之间的最大等待时间（秒）
+            output_type: 输出类型，可选值为 'markdown' 或 'html'
 
         Returns:
             List[Dict[str, Any]]: 爬取结果列表
@@ -177,7 +178,6 @@ class Crawl2RAG:
                 # 确保API URL格式正确
                 api_endpoint = self.firecrawl_api_url
 
-
                 logger.info(f'Firecrawl API URL: {self.firecrawl_api_url}')
                 logger.info(f'构建的API端点: {api_endpoint}')
 
@@ -189,7 +189,7 @@ class Crawl2RAG:
                 # 构建请求数据
                 payload = {
                     "url": url,
-                    "formats": ['html']
+                    "formats": ['html', 'markdown']  # 同时请求两种格式
                 }
 
                 logger.info(f'请求Firecrawl API: {api_endpoint}')
@@ -211,63 +211,38 @@ class Crawl2RAG:
 
                 logger.info(f'通过API调用成功爬取页面 {page_num}')
 
-                # 尝试从不同的响应格式中提取内容
-                markdown_content = None
-                html_content = None
-
-                # 从data.markdown获取内容
-                if result['data']['markdown']:
+                # 根据输出类型处理内容
+                if output_type == 'markdown' and result['data']['markdown']:
                     markdown_content = result['data']['markdown']
-                    logger.info(f'从响应的data.markdown字段获取内容')
-                if result['data']['html']:
-                    html_content = result['data']['html']
-                    logger.info(f'从响应的data.html字段获取内容')
-
-
-                # 处理提取的内容
-                if markdown_content:
-                    # 记录内容预览
                     content_preview = markdown_content[:100] + '...' if len(markdown_content) > 100 else markdown_content
-                    logger.info(f'获取到内容预览: {content_preview}')
-
+                    logger.info(f'获取到Markdown内容预览: {content_preview}')
+                    
                     # 保存为Markdown文件
                     file_path = self._save_to_markdown(markdown_content, url, page_num)
-
-                    # 添加页码信息到结果
+                    
                     result['page_num'] = page_num
                     result['file_path'] = file_path
-                    # 确保结果中有markdown字段，以便后续处理
                     result['markdown'] = markdown_content
                     results.append(result)
-
-                    logger.info(f'页面 {page_num} 爬取成功')
-                else:
-                    logger.warning(f'页面 {page_num} 爬取成功但未能提取有效内容')
-                    # 记录响应结构，以便调试
-                    logger.warning(f'响应结构: {json.dumps(list(result.keys()), ensure_ascii=False)}')
-                    # 记录部分响应内容
-                    truncated_result = {k: str(v)[:100] + '...' if isinstance(v, str) and len(v) > 100 else v
-                                       for k, v in result.items()}
-                    logger.warning(f'响应内容摘要: {json.dumps(truncated_result, ensure_ascii=False, indent=2)}')
-                # 处理提取的内容
-                if html_content:
-                    # 记录内容预览
+                    
+                    logger.info(f'页面 {page_num} Markdown内容保存成功')
+                
+                elif output_type == 'html' and result['data']['html']:
+                    html_content = result['data']['html']
                     html_content_preview = html_content[:100] + '...' if len(html_content) > 100 else html_content
-                    logger.info(f'获取到内容预览: {html_content_preview}')
-
-                    # 保存为html文件
+                    logger.info(f'获取到HTML内容预览: {html_content_preview}')
+                    
+                    # 保存为HTML文件
                     file_path = self._save_to_html(html_content, url, page_num)
-
-                    # 添加页码信息到结果
+                    
                     result['page_num'] = page_num
                     result['file_path'] = file_path
-                    # 确保结果中有html字段，以便后续处理
                     result['html'] = html_content
                     results.append(result)
-
-                    logger.info(f'页面 {page_num} 爬取成功')
+                    
+                    logger.info(f'页面 {page_num} HTML内容保存成功')
                 else:
-                    logger.warning(f'页面 {page_num} 爬取成功但未能提取有效内容')
+                    logger.warning(f'页面 {page_num} 爬取成功但未能提取{output_type}格式的有效内容')
                     # 记录响应结构，以便调试
                     logger.warning(f'响应结构: {json.dumps(list(result.keys()), ensure_ascii=False)}')
                     # 记录部分响应内容
@@ -305,7 +280,7 @@ class Crawl2RAG:
         logger.info(f'爬取完成，共爬取 {len(results)}/{end_page - start_page + 1} 个页面')
         return results
 
-    def process(self, base_url: str, start_page: int, end_page: int, wait_min: float = 2.0, wait_max: float = 4.0) -> Dict[str, Any]:
+    def process(self, base_url: str, start_page: int, end_page: int, wait_min: float = 2.0, wait_max: float = 4.0, output_type: str = 'markdown') -> Dict[str, Any]:
         """处理完整流程：爬取页面并上传到RAGFlow
 
         Args:
@@ -314,18 +289,32 @@ class Crawl2RAG:
             end_page: 结束页码
             wait_min: 爬取页面之间的最小等待时间（秒）
             wait_max: 爬取页面之间的最大等待时间（秒）
+            output_type: 输出类型，可选值为 'markdown' 或 'html'
 
         Returns:
             Dict[str, Any]: 处理结果
         """
         try:
+            # 验证输出类型
+            if output_type not in ['markdown', 'html']:
+                raise ValueError("输出类型必须是 'markdown' 或 'html'")
+
             # 爬取页面
-            crawl_results = self.crawl_page_range(base_url, start_page, end_page, wait_min, wait_max)
+            crawl_results = self.crawl_page_range(base_url, start_page, end_page, wait_min, wait_max, output_type)
+
+            # 根据输出类型过滤结果
+            filtered_results = []
+            for result in crawl_results:
+                if output_type == 'markdown' and 'markdown' in result:
+                    filtered_results.append(result)
+                elif output_type == 'html' and 'html' in result:
+                    filtered_results.append(result)
 
             return {
                 'status': 'success',
-                'crawled_pages': len(crawl_results),
-                'total_pages': end_page - start_page + 1
+                'crawled_pages': len(filtered_results),
+                'total_pages': end_page - start_page + 1,
+                'output_type': output_type
             }
 
         except Exception as e:
@@ -350,6 +339,9 @@ def main():
                         help='爬取页面之间的最小等待时间（秒），默认为2秒')
     parser.add_argument('--wait-max', type=float, default=4.0,
                         help='爬取页面之间的最大等待时间（秒），默认为4秒')
+    parser.add_argument('--type', type=str, default='markdown',
+                        choices=['markdown', 'html'],
+                        help='输出类型，可选值为 markdown 或 html，默认为 markdown')
 
     args = parser.parse_args()
 
@@ -370,7 +362,8 @@ def main():
             start_page=args.start_page,
             end_page=args.end_page,
             wait_min=args.wait_min,
-            wait_max=args.wait_max
+            wait_max=args.wait_max,
+            output_type=args.type
         )
 
         # 输出结果
