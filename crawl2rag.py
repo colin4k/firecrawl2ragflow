@@ -175,7 +175,7 @@ class Crawl2RAG:
             logger.error(f'保存html文件时发生错误: {str(e)}')
             raise
 
-    def process(self, base_url: str, start_page: int = None, end_page: int = None, page_numbers: List[int] = None, wait_min: float = 2.0, wait_max: float = 4.0, output_type: str = 'markdown') -> Dict[str, Any]:
+    def process(self, base_url: str, start_page: int = None, end_page: int = None, page_numbers: List[int] = None, wait_min: float = 2.0, wait_max: float = 4.0, output_type: str = 'markdown', timeout: int = 30000) -> Dict[str, Any]:
         """处理完整流程：爬取页面并上传到RAGFlow
 
         Args:
@@ -186,6 +186,7 @@ class Crawl2RAG:
             wait_min: 爬取页面之间的最小等待时间（秒）
             wait_max: 爬取页面之间的最大等待时间（秒）
             output_type: 输出类型，可选值为 'markdown' 或 'html'
+            timeout: 请求超时时间（毫秒）
 
         Returns:
             Dict[str, Any]: 处理结果
@@ -233,7 +234,7 @@ class Crawl2RAG:
                     payload = {
                         "url": url,
                         "formats": ['html'],  # 同时请求两种格式
-                        "timeout": 30000  # 设置超时时间为30秒
+                        "timeout": timeout  # 使用传入的超时时间
                     }
 
                     logger.info(f'请求Firecrawl API: {api_endpoint}')
@@ -363,6 +364,8 @@ def main():
     parser.add_argument('--type', type=str, default='markdown',
                         choices=['markdown', 'html'],
                         help='输出类型，可选值为 markdown 或 html，默认为 markdown')
+    parser.add_argument('--timeout', type=int, default=30000,
+                        help='请求超时时间（毫秒），默认为30000毫秒（30秒）')
 
     args = parser.parse_args()
 
@@ -403,7 +406,8 @@ def main():
             page_numbers=page_numbers,
             wait_min=args.wait_min,
             wait_max=args.wait_max,
-            output_type=args.type
+            output_type=args.type,
+            timeout=args.timeout
         )
 
         # 输出结果
