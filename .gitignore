@@ -1,3 +1,4 @@
 config.yml
-crawl2rag.log
+*.log
 __pycache__/
+output/
