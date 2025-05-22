@@ -232,7 +232,8 @@ class Crawl2RAG:
                     # 构建请求数据
                     payload = {
                         "url": url,
-                        "formats": ['html', 'markdown']  # 同时请求两种格式
+                        "formats": ['html'],  # 同时请求两种格式
+                        "timeout": 30000  # 设置超时时间为30秒
                     }
 
                     logger.info(f'请求Firecrawl API: {api_endpoint}')
